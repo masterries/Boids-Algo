@@ -183,21 +183,20 @@
     <p id="stoerung-text" class="standard-text"></p>
     <p id="error-message" class="error"></p>
     <audio id="notification-sound" src="/notification.mp3" style="display: none;"></audio>
-
     <script>
         let currentData = null;
         let timerId = null;
         let timerData = null;
-
+    
         // Function to get URL parameters
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
         }
-
+    
         // Get stopId from URL or use default 2949
         const stopId = getUrlParameter('stopId') || '2949';
-
+    
         function updateClock() {
             const jetzt = new Date();
             const tag = jetzt.getDate();
@@ -211,19 +210,19 @@
             const sekunde2 = (sekunden < 10 ? ".0" : ".");
             document.getElementById('current-time').innerText = `${stunden2}${stunden}${minute2}${minuten}${sekunde2}${sekunden} | ${tag}.${monat2}${monat}.`;
         }
-
+    
         function toggleLineDetails(linie) {
             const hiddenRows = document.querySelectorAll(`tr[data-line="${linie}"].hidden-row`);
             hiddenRows.forEach(row => {
                 row.classList.toggle('visible');
             });
-
+    
             const mainRows = document.querySelectorAll(`tr[data-line="${linie}"]:not(.hidden-row)`);
             mainRows.forEach(row => {
                 row.classList.toggle('expanded-row');
             });
         }
-
+    
         async function fetchData() {
             try {
                 let response = await fetch(`https://wlproxy.vercel.app/api/monitor-station?stopId=${stopId}`);
@@ -237,10 +236,10 @@
                 document.getElementById('error-message').style.display = 'block';
             }
         }
-
+    
         function updatePage(data) {
             updateClock();
-
+            
             if (!data || data.length === 0) {
                 document.getElementById('error-message').innerText = 'Keine Anzeigedaten verfügbar.';
                 document.getElementById('error-message').style.display = 'block';
@@ -248,19 +247,19 @@
                 document.getElementById('stoerung-text').innerHTML = '';
                 return;
             }
-
+    
             document.getElementById('error-message').style.display = 'none';
             let haltepunktName = data[0]?.haltestelle || 'Unbekannter Haltepunkt';
             document.getElementById('haltepunkt-name').innerText = haltepunktName;
-
+            
             let table = document.getElementById('departure-table');
             table.innerHTML = '';
-
+    
             // Create station header
             let stationHeader = document.createElement('tr');
             stationHeader.innerHTML = `<th colspan="3">${haltepunktName}</th>`;
             table.appendChild(stationHeader);
-
+    
             // Process each line's departures
             data.forEach(line => {
                 if (line.abfahrten && line.abfahrten.length > 0) {
@@ -278,7 +277,7 @@
                         `;
                         table.appendChild(row);
                     });
-
+    
                     // Add remaining departures as hidden rows
                     line.abfahrten.slice(2).forEach(abfahrt => {
                         let row = document.createElement('tr');
@@ -296,16 +295,16 @@
                     });
                 }
             });
-
+    
             // Update last updated time
             const lastUpdated = data[0]?.letzte_abfrage || '';
             document.getElementById('last-updated').innerText = `Letzte Aktualisierung: ${lastUpdated}`;
         }
-
+    
         function setTimer(minutes, line, destination) {
             // Clear any existing timer
             if (timerId) clearInterval(timerId);
-
+    
             // Store timer data in localStorage
             const timerData = {
                 minutes: minutes,
@@ -314,31 +313,31 @@
                 expiration: new Date().getTime() + minutes * 60 * 1000
             };
             localStorage.setItem('currentTimer', JSON.stringify(timerData));
-
+    
             // Update the timer display
             document.getElementById('timer-countdown').textContent = `${String(minutes).padStart(2, '0')}:00`;
             document.getElementById('timer-line').textContent = `Line: ${line}`;
             document.getElementById('timer-destination').textContent = `Destination: ${destination}`;
-
+    
             // Set the timer
             timerId = setInterval(checkTimer, 1000);
-
+    
             // Show notification when timer expires
             showNotification({
                 title: 'Train Alert',
                 message: `Your ${line} train to ${destination} is departing in ${minutes} minutes!`
             });
         }
-
+    
         function checkTimer() {
             const now = new Date().getTime();
             const savedTimer = JSON.parse(localStorage.getItem('currentTimer'));
-
+    
             if (savedTimer) {
                 const timeLeft = savedTimer.expiration - now;
                 const minutesLeft = Math.floor(timeLeft / (60 * 1000));
                 const secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
-
+    
                 if (timeLeft <= 0) {
                     clearInterval(timerId);
                     showNotification({
@@ -351,7 +350,7 @@
                 }
             }
         }
-
+    
         function clearTimer() {
             clearInterval(timerId);
             document.getElementById('timer-countdown').textContent = '00:00';
@@ -359,7 +358,7 @@
             document.getElementById('timer-destination').textContent = 'Destination: --';
             localStorage.removeItem('currentTimer');
         }
-
+    
         function showNotification(options) {
             if (Notification.permission === 'granted') {
                 new Notification(options.title, {
@@ -371,7 +370,7 @@
             // Play sound
             document.getElementById('notification-sound').play();
         }
-
+    
         // Request permission for notifications
         Notification.requestPermission(status => {
             if (status === 'granted') {
@@ -380,7 +379,7 @@
                 console.log('Notification permission denied.');
             }
         });
-
+    
         // Restore timer on app load
         window.onload = function() {
             const savedTimer = JSON.parse(localStorage.getItem('currentTimer'));
@@ -394,7 +393,7 @@
                 }
             }
         };
-
+    
         // Only start the updates if we have a valid stopId
         if (stopId) {
             fetchData();
@@ -402,6 +401,7 @@
             setInterval(updateClock, 1000);
         }
     </script>
+    
     
     <!-- Register Service Worker -->
     <script>
