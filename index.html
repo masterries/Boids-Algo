@@ -306,7 +306,7 @@
         function setTimer(minutes, line, destination) {
             // Clear any existing timer
             if (timerId) clearInterval(timerId);
-    
+
             // Store timer data in localStorage
             const timerData = {
                 minutes: minutes,
@@ -315,15 +315,12 @@
                 expiration: new Date().getTime() + minutes * 60 * 1000
             };
             localStorage.setItem('currentTimer', JSON.stringify(timerData));
-    
+
             // Update the timer display
             document.getElementById('timer-countdown').textContent = `${String(minutes).padStart(2, '0')}:00`;
             document.getElementById('timer-line').textContent = `Line: ${line}`;
             document.getElementById('timer-destination').textContent = `Destination: ${destination}`;
-    
-            // Set the timer
-            timerId = setInterval(checkTimer, 1000);
-    
+
             // Show notification when timer expires
             showNotification({
                 title: 'Train Alert',
@@ -370,8 +367,12 @@
                 });
             }
             // Play sound
-            document.getElementById('notification-sound').play();
+            if ('audio' in document) {
+                const audio = new Audio('/notification.mp3');
+                audio.play();
+            }
         }
+
     
         // Request permission for notifications
         Notification.requestPermission(status => {
