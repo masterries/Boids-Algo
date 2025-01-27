@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="de" manifest="./manifest.json">
+<html lang="de" manifest="/manifest.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abfahrtsmonitor</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@600&display=swap" rel="stylesheet">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <style>
         /* Previous styles remain the same */
         body {
@@ -139,6 +139,28 @@
                 font-size: 20px;
             }
         }
+        .timer-display {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: black;
+            color: yellow;
+            padding: 15px;
+            border: 2px solid red;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .timer-button {
+            background-color: black;
+            color: yellow;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border: 1px solid red;
+        }
+        .timer-button:hover {
+            background-color: #222;
+        }
     </style>
 </head>
 <body>
@@ -147,22 +169,32 @@
         <p class="large-text" id="current-time"></p>
         <p class="large-text" id="haltepunkt-name">Haltepunkt Name</p>
     </div>
+    <div class="timer-display" id="timer-display">
+        <h2>Next Departure</h2>
+        <p id="timer-countdown">00:00</p>
+        <p id="timer-line">Line: --</p>
+        <p id="timer-destination">Destination: --</p>
+        <button onclick="clearTimer()" class="timer-button">Clear Timer</button>
+    </div>
     <table id="departure-table">
         <!-- Departure data will be inserted here -->
     </table>
     <p id="last-updated" class="last-updated"></p>
     <p id="stoerung-text" class="standard-text"></p>
     <p id="error-message" class="error"></p>
+    <audio id="notification-sound" src="/notification.mp3" style="display: none;"></audio>
 
     <script>
         let currentData = null;
-        
+        let timerId = null;
+        let timerData = null;
+
         // Function to get URL parameters
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
         }
-        
+
         // Get stopId from URL or use default 2949
         const stopId = getUrlParameter('stopId') || '2949';
 
@@ -208,7 +240,7 @@
 
         function updatePage(data) {
             updateClock();
-            
+
             if (!data || data.length === 0) {
                 document.getElementById('error-message').innerText = 'Keine Anzeigedaten verfügbar.';
                 document.getElementById('error-message').style.display = 'block';
@@ -220,7 +252,7 @@
             document.getElementById('error-message').style.display = 'none';
             let haltepunktName = data[0]?.haltestelle || 'Unbekannter Haltepunkt';
             document.getElementById('haltepunkt-name').innerText = haltepunktName;
-            
+
             let table = document.getElementById('departure-table');
             table.innerHTML = '';
 
@@ -240,6 +272,9 @@
                             <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
                             <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
                             <td>${abfahrt.abfahrt_in_minuten}'</td>
+                            <td>
+                                <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}")" class="timer-button">Set Timer</button>
+                            </td>
                         `;
                         table.appendChild(row);
                     });
@@ -253,6 +288,9 @@
                             <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
                             <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
                             <td>${abfahrt.abfahrt_in_minuten}'</td>
+                            <td>
+                                <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}")" class="timer-button">Set Timer</button>
+                            </td>
                         `;
                         table.appendChild(row);
                     });
@@ -263,6 +301,99 @@
             const lastUpdated = data[0]?.letzte_abfrage || '';
             document.getElementById('last-updated').innerText = `Letzte Aktualisierung: ${lastUpdated}`;
         }
+
+        function setTimer(minutes, line, destination) {
+            // Clear any existing timer
+            if (timerId) clearInterval(timerId);
+
+            // Store timer data in localStorage
+            const timerData = {
+                minutes: minutes,
+                line: line,
+                destination: destination,
+                expiration: new Date().getTime() + minutes * 60 * 1000
+            };
+            localStorage.setItem('currentTimer', JSON.stringify(timerData));
+
+            // Update the timer display
+            document.getElementById('timer-countdown').textContent = `${String(minutes).padStart(2, '0')}:00`;
+            document.getElementById('timer-line').textContent = `Line: ${line}`;
+            document.getElementById('timer-destination').textContent = `Destination: ${destination}`;
+
+            // Set the timer
+            timerId = setInterval(checkTimer, 1000);
+
+            // Show notification when timer expires
+            showNotification({
+                title: 'Train Alert',
+                message: `Your ${line} train to ${destination} is departing in ${minutes} minutes!`
+            });
+        }
+
+        function checkTimer() {
+            const now = new Date().getTime();
+            const savedTimer = JSON.parse(localStorage.getItem('currentTimer'));
+
+            if (savedTimer) {
+                const timeLeft = savedTimer.expiration - now;
+                const minutesLeft = Math.floor(timeLeft / (60 * 1000));
+                const secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    showNotification({
+                        title: 'Final Alert',
+                        message: `Your ${savedTimer.line} train to ${savedTimer.destination} is departing now!`
+                    });
+                } else {
+                    document.getElementById('timer-countdown').textContent = 
+                        `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
+                }
+            }
+        }
+
+        function clearTimer() {
+            clearInterval(timerId);
+            document.getElementById('timer-countdown').textContent = '00:00';
+            document.getElementById('timer-line').textContent = 'Line: --';
+            document.getElementById('timer-destination').textContent = 'Destination: --';
+            localStorage.removeItem('currentTimer');
+        }
+
+        function showNotification(options) {
+            if (Notification.permission === 'granted') {
+                new Notification(options.title, {
+                    body: options.message,
+                    icon: '/icons/icon-192x192.png',
+                    vibrate: [200, 100, 200]
+                });
+            }
+            // Play sound
+            document.getElementById('notification-sound').play();
+        }
+
+        // Request permission for notifications
+        Notification.requestPermission(status => {
+            if (status === 'granted') {
+                console.log('Notification permission granted.');
+            } else {
+                console.log('Notification permission denied.');
+            }
+        });
+
+        // Restore timer on app load
+        window.onload = function() {
+            const savedTimer = JSON.parse(localStorage.getItem('currentTimer'));
+            
+            if (savedTimer) {
+                const now = new Date().getTime();
+                const timeLeft = savedTimer.expiration - now;
+                
+                if (timeLeft > 0) {
+                    setTimer(Math.floor(timeLeft / (60 * 1000)), savedTimer.line, savedTimer.destination);
+                }
+            }
+        };
 
         // Only start the updates if we have a valid stopId
         if (stopId) {
@@ -276,7 +407,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful');
                     })

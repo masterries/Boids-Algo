@@ -8,6 +8,7 @@ const ASSETS = [
     '/Boids-Algo/icons/icon-512x512.png'
 ];
 
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -20,4 +21,20 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request)
             .then((response) => response || fetch(event.request))
     );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    clients.openWindow('/');
+});
+
+self.addEventListener('push', (event) => {
+    if (event.data) {
+        event.waitUntil(
+            self.registration.showNotification(event.data.title, {
+                body: event.data.message,
+                icon: '/icons/icon-192x192.png'
+            })
+        );
+    }
 });
