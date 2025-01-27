@@ -264,35 +264,37 @@
             data.forEach(line => {
                 if (line.abfahrten && line.abfahrten.length > 0) {
                     // Add first two departures as always visible
+                    // Add first two departures as always visible
                     line.abfahrten.slice(0, 2).forEach((abfahrt, index) => {
-                        let row = document.createElement('tr');
-                        row.setAttribute('data-line', line.linie);
-                        row.innerHTML = `
-                            <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
-                            <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
-                            <td>${abfahrt.abfahrt_in_minuten}'</td>
-                            <td>
-                                <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}")" class="timer-button">Set Timer</button>
-                            </td>
-                        `;
-                        table.appendChild(row);
+                    let row = document.createElement('tr');
+                    row.setAttribute('data-line', line.linie);
+                    row.innerHTML = `
+                        <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
+                        <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
+                        <td>${abfahrt.abfahrt_in_minuten}'</td>
+                        <td>
+                        <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}')" class="timer-button">Set Timer</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
                     });
-    
+
                     // Add remaining departures as hidden rows
                     line.abfahrten.slice(2).forEach(abfahrt => {
-                        let row = document.createElement('tr');
-                        row.setAttribute('data-line', line.linie);
-                        row.classList.add('hidden-row');
-                        row.innerHTML = `
-                            <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
-                            <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
-                            <td>${abfahrt.abfahrt_in_minuten}'</td>
-                            <td>
-                                <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}")" class="timer-button">Set Timer</button>
-                            </td>
-                        `;
-                        table.appendChild(row);
+                    let row = document.createElement('tr');
+                    row.setAttribute('data-line', line.linie);
+                    row.classList.add('hidden-row');
+                    row.innerHTML = `
+                        <td onclick="toggleLineDetails('${line.linie}')">${line.linie}</td>
+                        <td>${abfahrt.ziel} ${abfahrt.niederflur === "Ja" ? '♿' : ''} 🕒</td>
+                        <td>${abfahrt.abfahrt_in_minuten}'</td>
+                        <td>
+                        <button onclick="setTimer(${abfahrt.abfahrt_in_minuten}, '${line.linie}', '${abfahrt.ziel}')" class="timer-button">Set Timer</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
                     });
+
                 }
             });
     
